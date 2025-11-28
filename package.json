@@ -1,0 +1,19 @@
+{
+  "name": "erc-721",
+  "version": "1.0.0",
+  "main": "App.ts",
+  "scripts": {
+    "start": "ts-node App.ts",
+    "build": "tsc",
+    "dev": "ts-node App.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "ethers": "^6.15.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
