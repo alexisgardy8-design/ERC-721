@@ -38,6 +38,7 @@ contract Counter is ERC721, IExerciceSolution {
 
     mapping(uint => Animal) public animals;
     mapping(address => bool) public registeredBreeders;
+    mapping(uint => uint) public animalPrices;
     uint256 private nextTokenId = 2;
 
     constructor() ERC721("MyAnimal", "ANIMAL") {
@@ -82,9 +83,8 @@ contract Counter is ERC721, IExerciceSolution {
         uint256 tokenId = nextTokenId;
         nextTokenId++;
         
-        // Si c'est l'évaluateur qui appelle, mint le token à l'évaluateur
-        // Sinon mint à l'évaluateur comme spécifié dans l'exercice
-        address recipient = (msg.sender == evaluatorAddress) ? evaluatorAddress : evaluatorAddress;
+        
+        address recipient = (msg.sender == evaluatorAddress) ? evaluatorAddress : msg.sender;
         _mint(recipient, tokenId);
         
         animals[tokenId] = Animal({
@@ -93,6 +93,7 @@ contract Counter is ERC721, IExerciceSolution {
             legs: legs,
             sex: sex
         });
+        animalPrices[tokenId] = 0;
         return tokenId;
     }
     
@@ -101,10 +102,10 @@ contract Counter is ERC721, IExerciceSolution {
     function declareDeadAnimal(uint animalNumber) external {
         require(ownerOf(animalNumber) == msg.sender, "Not the owner");
         
-        // Brûler le token
+       
         _burn(animalNumber);
         
-        // Réinitialiser les caractéristiques de l'animal
+       
         animals[animalNumber] = Animal({
             name: "",
             wings: false,
@@ -117,9 +118,9 @@ contract Counter is ERC721, IExerciceSolution {
         require(index < balanceOf(owner), "Index out of bounds");
         uint256 count = 0;
         
-        // Parcourir tous les tokens possibles
+       
         for (uint256 i = 1; i < nextTokenId; i++) {
-            // Utiliser try/catch pour vérifier l'existence et le propriétaire
+          
             try this.ownerOf(i) returns (address tokenOwner) {
                 if (tokenOwner == owner) {
                     if (count == index) {
@@ -128,24 +129,37 @@ contract Counter is ERC721, IExerciceSolution {
                     count++;
                 }
             } catch {
-                // Token n'existe pas ou a été brûlé, continuer
+               
                 continue;
             }
         }
         revert("Token not found");
     }
     
-    function isAnimalForSale(uint animalNumber) external pure returns (bool) {
-        return false;
+    function isAnimalForSale(uint animalNumber) external view returns (bool) {
+        return animalPrices[animalNumber] > 0 ether;
     }
     
-    function animalPrice(uint animalNumber) external pure returns (uint256) {
-        return 0;
+    function animalPrice(uint animalNumber) external view returns (uint256) {
+        return animalPrices[animalNumber];
     }
     
-    function buyAnimal(uint animalNumber) external payable {}
+    function buyAnimal(uint animalNumber) external payable {
+        require(animalPrices[animalNumber] > 0, "Animal not for sale");
+        require(msg.value >= animalPrices[animalNumber], "Insufficient payment");
+        address owner = ownerOf(animalNumber);
+        uint256 price = animalPrices[animalNumber];
+        animalPrices[animalNumber] = 0;
+        _transfer(owner, msg.sender, animalNumber);
+        payable(owner).transfer(price);
+    }
     
-    function offerForSale(uint animalNumber, uint price) external {}
+    function offerForSale(uint animalNumber, uint price) external {
+        require(ownerOf(animalNumber) == msg.sender, "Not the owner");
+        require(price > 0 ether, "Price must be greater than zero");
+        animalPrices[animalNumber] = price;
+
+    }
     
     function declareAnimalWithParents(uint sex, uint legs, bool wings, string calldata name, uint parent1, uint parent2) external pure returns (uint256) {
         return 1;
